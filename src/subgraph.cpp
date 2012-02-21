@@ -14,9 +14,9 @@ int main(int argc, char* argv[])
     int u, v;
     while (std::cin.good()) {
         count += 1;
-        if (count <= start) continue;
 
         std::cin >> u >> v;
+        if (count <= start) continue;
 
         if (nodes.size() < size) {
             nodes.insert(u);
