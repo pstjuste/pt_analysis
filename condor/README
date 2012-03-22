@@ -1,0 +1,15 @@
+
+Copy this folder into the grid appliance and run
+
+$ cd condor
+
+$ condor_submit condor_submit_python
+
+To see status of submitted jobs
+
+$ condor_q
+
+To remove bad jobs
+
+$ condor_rm -a
+

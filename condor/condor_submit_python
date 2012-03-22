@@ -1,0 +1,25 @@
+
+Universe = vanilla
+
+Executable = submit_python.sh
+transfer_input_files = sigcomm2012.py, graph.txt, digraph.txt, networkx.tgz
+
+Requirements = Memory >= 1000
+Rank = Memory >= 2000
+
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+
+Output = sum_edges_1.out
+Error = sum_edges.err
+Log = sum_edges.log
+Arguments = graph.txt digrah.txt -1 -1 1 -1 -1 -1 -1 -1 -1
+Queue
+
+Output = sum_edges_2.out
+Error = sum_edges_2.err
+Log = sum_edges_2.log
+Arguments = graph.txt digrah.txt -1 -1 2 -1 -1 -1 -1 -1 -1
+Queue
+
+
