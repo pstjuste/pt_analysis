@@ -2,43 +2,135 @@
 
 import random
 import sys
+import math
 import networkx as nx
 import socialModels as sm
 
-def do_random_walk(g, ttl):
+out_file = None
+
+def add_random_ids(g):
+
+    max_int = pow(2,64)
+    for n in g.nodes_iter():
+        g[n][0] = random.randint(0, max_int)
+
+
+def get_random_node(g, node, query):
+
+    nodes = g.neighbors(node)
+    next_hop = random.randint(0, len(nodes)-1)
+    return nodes[next_hop]
+
+
+def get_greedy_node(g, node, query):
+
+    for i in range(2):
+        node = get_random_node(g, node, query)
+
+    old_dist = None
+    nodes = g.neighbors(node)
+
+    for n in nodes:
+        dist = math.fabs(query - g[n][0])
+
+        if old_dist == None or dist < old_dist:
+            node = n
+            old_dist = dist
+
+    return node
+
+
+def get_greedy2_node(g, node, query):
+
+    for i in range(2):
+        node = get_random_node(g, node, query)
+
+    old_dist = None
+    nodes = g.neighbors(node)
+
+    for n in nodes:
+        dist = math.fabs(query - g[n][0])
+
+        if old_dist == None or dist < old_dist:
+            node = n
+            old_dist = dist
+
+        for nn in g.neighbors(n):
+            dist = math.fabs(query - g[nn][0])
+
+            if old_dist == None or dist < old_dist:
+                node = n
+                old_dist = dist
+
+    return node
+
+
+def put_random_walk(g, ttl, query, par, next_node_funct):
 
     node = None
+    start_node = None
+    ttl = ttl/par
     node_it = g.nodes_iter()
-    visited_nodes = set()
+    rnd_idx = random.randint(1, len(g))
 
-    for i in range(random.randint(0,len(g))):
-        node = node_it.next()
+    for i in range(rnd_idx):
+        start_node = node_it.next()
 
-    for i in range(ttl):
-        node_it = g.neighbors_iter(node)
-        next_hop = random.randint(0, g.degree(node))
+    put_nodes = set()
+    put_nodes.add(start_node)
 
-        for j in range(next_hop):
-            node = node_it.next()
+    for i in range(par):
+        node = start_node
 
-        visited_nodes.add(node)
+        for j in range(ttl):
+            node = next_node_funct(g, node, query)
+            put_nodes.add(node)
 
-    return visited_nodes
+    return put_nodes
 
 
-def random_lookup(g, ttl, tries):
+def get_random_walk(g, ttl, query, par, next_node_funct, nodes):
+
+    node = None
+    start_node = None
+    ttl = ttl/par
+    count = 0
+    node_it = g.nodes_iter()
+    rnd_idx = random.randint(1, len(g))
+
+    for i in range(rnd_idx):
+        start_node = node_it.next()
+
+    for i in range(par):
+        node = start_node
+
+        for j in range(ttl):
+            count += 1
+            node = next_node_funct(g, node, query)
+            if node in nodes and node != 0:
+                return count
+
+    return "miss"
+
+
+def lookup(g, ttl, tries, par, next_node_funct):
 
     hits = 0
-    for i in range(tries):
-        put_set = do_random_walk(g, ttl)
-        get_set = do_random_walk(g, ttl)
-        intersect_set = put_set & get_set
+    max_int = pow(2, 64)
+    add_random_ids(g)
 
-        if len(intersect_set) > 0: hits += 1
+    for i in range(tries):
+        q = random.randint(0, max_int)
+        nodes = put_random_walk(g, ttl, q, par, next_node_funct)
+        result = get_random_walk(g, ttl, q, par, next_node_funct, nodes)
+        print >> out_file, len(nodes), result
+
+        if result >= 0: hits += 1
 
     return float(hits)/float(tries)
 
-def sum_edges(g, hops, out_file):
+
+def sum_edges(g, hops):
 
     for source in g.nodes_iter():
         count = 0
@@ -51,9 +143,45 @@ def sum_edges(g, hops, out_file):
 
 
 def main():
-    g = sm.nearestNeighbor_mod(97134, 0.53, 1)
-    #sum_edges(g, sys.stdout)
-    print random_lookup(g, 200, 10)
+
+    msg = "usage: ./p2p2012.py type r|g|g2 ttl par tries"
+
+    if len(sys.argv) < 6:
+        print msg
+        sys.exit(1)
+
+    global out_file, bcast
+    out_file = sys.stdout
+
+    gtype = sys.argv[1]
+    walk = sys.argv[2]
+    ttl = int(sys.argv[3])
+    par = int(sys.argv[4])
+    tries = int(sys.argv[5])
+
+    if gtype == "a":
+        g = nx.barabasi_albert_graph(97134, 3)
+    elif gtype == "b":
+        g = nx.barabasi_albert_graph(905668, 12)
+    elif gtype == "c":
+        g = sm.randomWalk_mod(97134, 0.90, 0.23)
+    elif gtype == "d":
+        g = sm.randomWalk_mod(905668, 0.93, 0.98)
+    elif gtype == "e":
+        g = sm.nearestNeighbor_mod(97134, 0.53, 1)
+    elif gtype == "f":
+        g = sm.nearestNeighbor_mod(905668, 0.90, 5)
+    elif gtype == "g":
+        g = nx.random_regular_graph(6, 97134)
+    elif gtype == "h":
+        g = nx.random_regular_graph(20, 905668)
+
+    if walk == "r":
+        lookup(g, ttl, tries, par, get_random_node)
+    elif walk == "g":
+        lookup(g, ttl, tries, par, get_greedy_node)
+    elif walk == "g2":
+        lookup(g, ttl, tries, par, get_greedy2_node)
 
 if __name__ == "__main__":
     main()
