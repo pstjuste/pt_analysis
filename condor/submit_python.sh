@@ -1,4 +1,4 @@
 #!/bin/bash
 
 /bin/tar xf networkx.tgz &> /dev/null
-/usr/bin/python sigcomm2012.py $@
+/usr/bin/python p2p2012.py $@
