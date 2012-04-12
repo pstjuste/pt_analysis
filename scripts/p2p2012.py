@@ -7,12 +7,15 @@ import networkx as nx
 import socialModels as sm
 
 out_file = None
+ids = None
 
 def add_random_ids(g):
 
+    global ids
+    ids = {}
     max_int = pow(2,64)
     for n in g.nodes_iter():
-        g[n][0] = random.randint(0, max_int)
+        ids[n] = random.randint(0, max_int)
 
 
 def get_random_node(g, node, query):
@@ -31,7 +34,7 @@ def get_greedy_node(g, node, query):
     nodes = g.neighbors(node)
 
     for n in nodes:
-        dist = math.fabs(query - g[n][0])
+        dist = math.fabs(query - ids[n])
 
         if old_dist == None or dist < old_dist:
             node = n
@@ -49,7 +52,7 @@ def get_greedy2_node(g, node, query):
     nodes = g.neighbors(node)
 
     for n in nodes:
-        dist = math.fabs(query - g[n][0])
+        dist = math.fabs(query - ids[n])
 
         if old_dist == None or dist < old_dist:
             node = n
@@ -70,11 +73,8 @@ def put_random_walk(g, ttl, query, par, next_node_funct):
     node = None
     start_node = None
     ttl = ttl/par
-    node_it = g.nodes_iter()
-    rnd_idx = random.randint(1, len(g))
-
-    for i in range(rnd_idx):
-        start_node = node_it.next()
+    rnd_idx = random.randint(0, len(g)-1)
+    start_node = g.nodes()[rnd_idx]
 
     put_nodes = set()
     put_nodes.add(start_node)
@@ -94,20 +94,17 @@ def get_random_walk(g, ttl, query, par, next_node_funct, nodes):
     node = None
     start_node = None
     ttl = ttl/par
+    rnd_idx = random.randint(0, len(g)-1)
+    start_node = g.nodes()[rnd_idx]
+
     count = 0
-    node_it = g.nodes_iter()
-    rnd_idx = random.randint(1, len(g))
-
-    for i in range(rnd_idx):
-        start_node = node_it.next()
-
     for i in range(par):
         node = start_node
 
         for j in range(ttl):
             count += 1
             node = next_node_funct(g, node, query)
-            if node in nodes and node != 0:
+            if node in nodes:
                 return count
 
     return "miss"
@@ -175,6 +172,8 @@ def main():
         g = nx.random_regular_graph(6, 97134)
     elif gtype == "h":
         g = nx.random_regular_graph(20, 905668)
+    elif gtype == "i":
+        g = nx.read_edgelist(sys.argv[6])
 
     if walk == "r":
         lookup(g, ttl, tries, par, get_random_node)
