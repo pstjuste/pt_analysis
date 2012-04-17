@@ -72,7 +72,7 @@ def get_greedy2_node(g, node, query):
 
         for j in range(ndegree):
             nn = node_it.next()
-            dist = math.fabs(query - g[nn][0])
+            dist = math.fabs(query - ids[nn])
 
             if old_dist == None or dist < old_dist:
                 node = n
