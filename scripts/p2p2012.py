@@ -209,6 +209,8 @@ def main():
         lookup(g, ttl, tries, par, get_greedy_node)
     elif walk == "g2":
         lookup(g, ttl, tries, par, get_greedy2_node)
+    elif walk == "sum":
+        sum_edges(g, int(sys.argv[3]))
 
 if __name__ == "__main__":
     main()
