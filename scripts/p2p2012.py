@@ -212,6 +212,12 @@ def main():
     elif walk == "sum":
         sum_edges(g, int(sys.argv[3]))
 
+    nodes = g.number_of_nodes()
+    edges = g.size()
+    avg_cc = nx.average_clustering(g)
+
+    print >> sys.stderr, nodes, edges, avg_cc
+
 if __name__ == "__main__":
     main()
 
