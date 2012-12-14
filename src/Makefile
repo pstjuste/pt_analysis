@@ -1,11 +1,11 @@
 CPPFLAGS = -Ilemon/include -I.
 LDFLAGS = -Llemon/lib -lemon
-PROGS = sigcomm2012 subgraph socialgraph degree
+PROGS = dupedges csr13 sigcomm2012 subgraph socialgraph degree
 
 all : $(PROGS)
 
 % : %.cpp
-	g++ -g -o $@ $< $(CPPFLAGS) $(LDFLAGS)
+	g++ -g -static-libstdc++ -o $@ $< $(CPPFLAGS) $(LDFLAGS)
 
 clean :
 	rm $(PROGS)
