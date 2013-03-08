@@ -1,6 +1,6 @@
 CPPFLAGS = -Ilemon/include -I.
 LDFLAGS = -Llemon/lib -lemon
-PROGS = dupedges csr13 sigcomm2012 subgraph socialgraph degree
+PROGS = ijsn13 dupedges csr13 sigcomm2012 subgraph socialgraph degree
 
 all : $(PROGS)
 

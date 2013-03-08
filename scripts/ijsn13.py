@@ -1,0 +1,285 @@
+#!/usr/bin/env python
+
+import sys
+import random
+import networkx as nx
+import socialModels as sm
+import scipy.stats as stats
+
+"""
+These functions are for future work, if I ever get to it. The basic idea is 
+to create a graph is a diameter of 4 for at least 95% of the nodes. Such a
+graph may be good for an IP overlay.
+
+def cap_edges(g, cap):
+    total_rm = 0
+    for n in g.nodes():
+        edges = g.edges(n)
+        if len(edges) > cap:
+
+            no_to_rm = len(edges) - cap
+            total_rm += no_to_rm
+            random.shuffle(edges)
+
+            for edge in edges:
+                g.remove_edge(*edge)
+                no_to_rm -= 1
+                if no_to_rm == 0: break
+
+    return total_rm
+
+def get_random_node(g, u):
+    v = int(stats.uniform.rvs(scale=len(g)))
+    while not g.has_node(v):
+        v = int(stats.uniform.rvs(scale=len(g)))
+    return v
+
+def get_social_node(g, u, dist=4):
+    v = u
+    limit = 2 + int(stats.uniform.rvs(scale=dist-2))
+    for i in range(limit):
+        stopper = int(stats.uniform.rvs(scale=g.degree(v)))
+        counter = 0
+        for n in g.neighbors_iter(v):
+            v = n
+            counter += 1
+            if counter >= stopper: break
+    return v
+
+def fill_edges(g, cap, limit, mode):
+    total_added = 0
+    for u in g.nodes():
+        if g.degree(u) < cap:
+            no_to_add = cap - g.degree(u)
+            total_added += no_to_add
+
+            counter = 0
+            while no_to_add > 0:
+                if mode == 1:
+                    v = get_social_node(g, u)
+                elif mode == 2:
+                    v = get_random_node(g, u)
+
+                if g.degree(v) < limit and not g.has_edge(u, v) and u != v:
+                    g.add_edge(u, v)
+                    no_to_add -= 1
+                if counter > 2 * limit: break
+                counter += 1
+
+    return total_added
+
+def count_coverage(g, dist):
+    source = int(stats.uniform.rvs(scale=len(g)))
+    paths = nx.single_source_shortest_path(g, source, dist)
+    return len(paths)
+
+def enhance_graph(g, tries, cap, limit, mode, dist=4):
+    print cap_edges(g, cap)
+    print fill_edges(g, cap, limit, mode)
+    for i in range(tries):
+        print count_coverage(g, dist)
+    for n in g.nodes(): print g.degree(n)
+"""
+
+#=======================Timing Analysis=======================================
+
+LIMIT = 7 * 24 * 12
+OFFSET_RANGE = 12 * 24
+
+class State():
+    def __init__(self):
+        self.on_schedule = {}
+        self.off_schedule = {}
+        self.visited = {}
+
+def set_schedule(state, node, limit=LIMIT):
+    on_times = []
+    off_times = []
+    current_time = int(stats.uniform.rvs(scale=OFFSET_RANGE))
+
+    while current_time < limit:
+        on_interval = int(stats.expon.rvs(scale=state.on_mean))
+        on_times.append((current_time, current_time + on_interval))
+        current_time += (on_interval + 1)
+
+        off_interval = int(stats.expon.rvs(scale=state.off_mean))
+        off_times.append((current_time, current_time + off_interval))
+        current_time += (off_interval + 1)
+
+    state.on_schedule[node] = on_times
+    state.off_schedule[node] = off_times
+
+def find_overlap(state, source, target, limit=LIMIT):
+    if source not in state.on_schedule:
+         set_schedule(state, source)
+    if target not in state.on_schedule:
+        set_schedule(state, target)
+
+    found = 0
+    stimes = state.on_schedule[source]
+    ttimes = state.on_schedule[target]
+    old_time = state.visited.get(target, limit)
+    if old_time <= state.visited[source]: return found
+
+    for stime in stimes:
+        if found == 1: break
+
+        for ttime in ttimes:
+            if not (ttime[1] <= stime[0] or ttime[0] >= stime[1]) and\
+                stime[1] >= state.visited[source]:
+                new_time = max(stime[0], ttime[0], state.visited[source])
+                if new_time < old_time:
+                    state.visited[target] = min(old_time, new_time)
+                    found = 1
+                break
+    return found
+
+def set_message_time(state, node):
+    set_schedule(state, node)
+    interval = state.on_schedule[node][0]
+    message_time = int(stats.uniform.rvs(scale=(interval[1]-interval[0])))
+    state.visited[node] = interval[0] + message_time
+
+def get_pub_time(g, state, source):
+    nodes = {}
+    nodes[source] = 0
+    set_message_time(state, source)
+
+    for node in g.neighbors(source):
+        nodes[node] = 1
+        find_overlap(state, source, node)
+
+    while True:
+        counter = 0
+        for node, dist in nodes.items():
+            if dist == 1:
+                for foaf in g.neighbors(node):
+                    nodes[foaf] = 2
+                    if node in state.visited:
+                        counter += find_overlap(state, node, foaf)
+        if counter == 0: break
+
+    for i in range(2,4):
+        for node, dist in nodes.items():
+            if dist == i:
+                for foaf in g.neighbors(node):
+                    nodes[foaf] = i + 1
+                    if node in state.visited:
+                        find_overlap(state, node, foaf)
+    return nodes
+
+def publish_time(g, on_mean, off_mean, tries):
+    state = State()
+    state.on_mean = on_mean
+    state.off_mean = off_mean
+    for i in range(tries):
+        source = int(stats.uniform.rvs(scale=len(g)))
+        nodes = get_pub_time(g, state, source)
+        print "stats %s %s" % (g.degree(source), nx.clustering(g, source))
+        for n, d in nodes.iteritems():
+            print d, state.visited.get(n, -LIMIT) - state.visited[source]
+
+#=======================Bandwidth Analysis====================================
+def get_bw_cost(g, source, hops):
+    dup_counter = 0
+    nodes = {}
+    nodes[source] = 0
+    for i in range(hops):
+        for node, dist in nodes.items():
+            if dist == i:
+                for n in g.neighbors_iter(node):
+                    if n in nodes: dup_counter += 1
+                    else: nodes[n] = i + 1
+    return len(nodes), dup_counter
+
+def bandwidth_cost(g, hops, visits):
+    for i in range(visits):
+        source = int(stats.uniform.rvs(scale=len(g)))
+        if not g.has_node(source): continue
+        print get_bw_cost(g, source, hops)
+
+#=======================Replication Analysis==================================
+def get_high_node(g, node, visited):
+    nodes = sorted(g.neighbors(node), key=lambda n: -g.degree(n))
+    for node in nodes:
+        if node not in visited: return node
+    return None
+
+def get_rand_node(g, node, visited):
+    nodes = g.neighbors(node)
+    idx = int(stats.uniform.rvs(scale=len(nodes)))
+    return nodes[idx]
+
+def do_random_walk(g, ttl, wtype, visited):
+    node = int(stats.uniform.rvs(scale=len(g)))
+    if not g.has_node(node): return {}
+    for i in range(ttl):
+        if wtype == 1: node = get_high_node(g, node, visited)
+        elif wtype == 2: node = get_rand_node(g, node, visited)
+
+        if node == None: break
+        visited[node] = i
+    return visited
+
+def random_walk(g, ttl, wtype, walks):
+    for i in range(walks):
+        put_nodes = do_random_walk(g, ttl, wtype, {})
+        get_nodes = do_random_walk(g, ttl, wtype, {})
+        result = "%s %s" % (len(get_nodes), len(put_nodes))
+        for k, v in get_nodes.iteritems():
+            if k in put_nodes:
+                result += " %s %s" % (v, put_nodes[k])
+                break
+        print result
+
+#=======================Helper Functions======================================
+def get_high_node(g, node, visited):
+def save_graph(g, filename):
+    nx.write_edgelist(g, filename, data=False)
+
+def gen_graph(gtype):
+    if gtype == "a":
+        g = nx.barabasi_albert_graph(97134, 3)
+    elif gtype == "b":
+        g = nx.barabasi_albert_graph(905668, 12)
+    elif gtype == "c":
+        g = sm.randomWalk_mod(97134, 0.90, 0.23)
+    elif gtype == "d":
+        g = sm.randomWalk_mod(905668, 0.93, 0.98)
+    elif gtype == "e":
+        g = sm.nearestNeighbor_mod(97134, 0.53, 1)
+    elif gtype == "f":
+        g = sm.nearestNeighbor_mod(905668, 0.90, 5)
+    elif gtype == "g":
+        g = nx.random_regular_graph(6, 97134)
+    elif gtype == "h":
+        g = nx.random_regular_graph(20, 905668)
+    elif gtype == "i":
+        g = nx.random_regular_graph(100, 5000)
+    else:
+        g = nx.complete_graph(10)
+    return g
+
+def main():
+    msg = "help: ijsn13.py gtype hops visits on_mean off_mean tries" \
+          "ttl wtype walks"
+    if len(sys.argv) < 10: print msg; return -1
+
+    gtype = sys.argv[1]
+    hops = int(sys.argv[2])
+    visits = int(sys.argv[3])
+    on_mean = 12 * int(sys.argv[4])
+    off_mean = 12 * int(sys.argv[5])
+    tries = int(sys.argv[6])
+    ttl = int(sys.argv[7])
+    wtype = int(sys.argv[8])
+    walks = int(sys.argv[9])
+
+    g = gen_graph(gtype)
+    bandwidth_cost(g, hops, visits)
+    publish_time(g, on_mean, off_mean, tries)
+    random_walk(g, ttl, wtype, walks)
+
+if __name__ == "__main__":
+    main()
+
