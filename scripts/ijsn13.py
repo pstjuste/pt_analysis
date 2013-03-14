@@ -29,10 +29,10 @@ def cap_edges(g, cap):
     return total_rm
 
 def get_random_node(g, u):
-    v = int(stats.uniform.rvs(scale=len(g)))
-    while not g.has_node(v):
-        v = int(stats.uniform.rvs(scale=len(g)))
-    return v
+    node = int(stats.uniform.rvs(scale=len(g)))
+    while not g.has_node(node):
+        node = int(stats.uniform.rvs(scale=len(g)))
+    return node
 
 def get_social_node(g, u, dist=4):
     v = u
@@ -169,53 +169,56 @@ def get_pub_time(g, state, source):
     return nodes
 
 def publish_time(g, on_mean, off_mean, tries):
-    state = State()
-    state.on_mean = on_mean
-    state.off_mean = off_mean
     for i in range(tries):
+        state = State()
+        state.on_mean = on_mean
+        state.off_mean = off_mean
         source = int(stats.uniform.rvs(scale=len(g)))
         nodes = get_pub_time(g, state, source)
         print "stats %s %s" % (g.degree(source), nx.clustering(g, source))
         for n, d in nodes.iteritems():
             print d, state.visited.get(n, -LIMIT) - state.visited[source]
+        del state
 
 #=======================Bandwidth Analysis====================================
 def get_bw_cost(g, source, hops):
-    dup_counter = 0
-    nodes = {}
-    nodes[source] = 0
-    for i in range(hops):
-        for node, dist in nodes.items():
-            if dist == i:
-                for n in g.neighbors_iter(node):
-                    if n in nodes: dup_counter += 1
-                    else: nodes[n] = i + 1
-    return len(nodes), dup_counter
+    counter = 0
+    paths = nx.single_source_shortest_path(g, source, hops)
+    no_friends = len(paths) - 1
+    for k, v in paths.iteritems():
+      if (len(v) <= hops):
+          counter += g.degree(k)
+    return no_friends, counter - no_friends
 
 def bandwidth_cost(g, hops, visits):
     for i in range(visits):
         source = int(stats.uniform.rvs(scale=len(g)))
         if not g.has_node(source): continue
-        print get_bw_cost(g, source, hops)
+        print "%s %s" % get_bw_cost(g, source, hops)
 
 #=======================Replication Analysis==================================
-def get_high_node(g, node, visited):
+def get_high_neighbor(g, node, visited):
     nodes = sorted(g.neighbors(node), key=lambda n: -g.degree(n))
     for node in nodes:
         if node not in visited: return node
     return None
 
-def get_rand_node(g, node, visited):
+def get_rand_neighbor(g, node, visited):
     nodes = g.neighbors(node)
-    idx = int(stats.uniform.rvs(scale=len(nodes)))
-    return nodes[idx]
+    # commented out because it gets stuck at nodes with degree = 1
+    #random.shuffle(nodes)
+    #for node in nodes:
+    #    if node not in visited: return node
+    return nodes[int(stats.uniform.rvs(scale=len(nodes)))]
 
 def do_random_walk(g, ttl, wtype, visited):
     node = int(stats.uniform.rvs(scale=len(g)))
     if not g.has_node(node): return {}
     for i in range(ttl):
-        if wtype == 1: node = get_high_node(g, node, visited)
-        elif wtype == 2: node = get_rand_node(g, node, visited)
+        if wtype == 1:
+            node = get_high_neighbor(g, node, visited)
+        elif wtype == 2:
+            node = get_rand_neighbor(g, node, visited)
 
         if node == None: break
         visited[node] = i
@@ -228,12 +231,11 @@ def random_walk(g, ttl, wtype, walks):
         result = "%s %s" % (len(get_nodes), len(put_nodes))
         for k, v in get_nodes.iteritems():
             if k in put_nodes:
-                result += " %s %s" % (v, put_nodes[k])
+                result += " %s %s h" % (v, put_nodes[k])
                 break
         print result
 
 #=======================Helper Functions======================================
-def get_high_node(g, node, visited):
 def save_graph(g, filename):
     nx.write_edgelist(g, filename, data=False)
 
@@ -261,7 +263,7 @@ def gen_graph(gtype):
     return g
 
 def main():
-    msg = "help: ijsn13.py gtype hops visits on_mean off_mean tries" \
+    msg = "help: ijsn13.py gtype hops visits on_mean off_mean tries " \
           "ttl wtype walks"
     if len(sys.argv) < 10: print msg; return -1
 
@@ -275,7 +277,11 @@ def main():
     wtype = int(sys.argv[8])
     walks = int(sys.argv[9])
 
-    g = gen_graph(gtype)
+    if len(gtype) == 1:
+        g = gen_graph(gtype)
+    else:
+        g = nx.read_edgelist(gtype, nodetype=int, create_using=nx.Graph())
+
     bandwidth_cost(g, hops, visits)
     publish_time(g, on_mean, off_mean, tries)
     random_walk(g, ttl, wtype, walks)
