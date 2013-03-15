@@ -6,83 +6,7 @@ import networkx as nx
 import socialModels as sm
 import scipy.stats as stats
 
-"""
-These functions are for future work, if I ever get to it. The basic idea is 
-to create a graph is a diameter of 4 for at least 95% of the nodes. Such a
-graph may be good for an IP overlay.
-
-def cap_edges(g, cap):
-    total_rm = 0
-    for n in g.nodes():
-        edges = g.edges(n)
-        if len(edges) > cap:
-
-            no_to_rm = len(edges) - cap
-            total_rm += no_to_rm
-            random.shuffle(edges)
-
-            for edge in edges:
-                g.remove_edge(*edge)
-                no_to_rm -= 1
-                if no_to_rm == 0: break
-
-    return total_rm
-
-def get_random_node(g, u):
-    node = int(stats.uniform.rvs(scale=len(g)))
-    while not g.has_node(node):
-        node = int(stats.uniform.rvs(scale=len(g)))
-    return node
-
-def get_social_node(g, u, dist=4):
-    v = u
-    limit = 2 + int(stats.uniform.rvs(scale=dist-2))
-    for i in range(limit):
-        stopper = int(stats.uniform.rvs(scale=g.degree(v)))
-        counter = 0
-        for n in g.neighbors_iter(v):
-            v = n
-            counter += 1
-            if counter >= stopper: break
-    return v
-
-def fill_edges(g, cap, limit, mode):
-    total_added = 0
-    for u in g.nodes():
-        if g.degree(u) < cap:
-            no_to_add = cap - g.degree(u)
-            total_added += no_to_add
-
-            counter = 0
-            while no_to_add > 0:
-                if mode == 1:
-                    v = get_social_node(g, u)
-                elif mode == 2:
-                    v = get_random_node(g, u)
-
-                if g.degree(v) < limit and not g.has_edge(u, v) and u != v:
-                    g.add_edge(u, v)
-                    no_to_add -= 1
-                if counter > 2 * limit: break
-                counter += 1
-
-    return total_added
-
-def count_coverage(g, dist):
-    source = int(stats.uniform.rvs(scale=len(g)))
-    paths = nx.single_source_shortest_path(g, source, dist)
-    return len(paths)
-
-def enhance_graph(g, tries, cap, limit, mode, dist=4):
-    print cap_edges(g, cap)
-    print fill_edges(g, cap, limit, mode)
-    for i in range(tries):
-        print count_coverage(g, dist)
-    for n in g.nodes(): print g.degree(n)
-"""
-
 #=======================Timing Analysis=======================================
-
 LIMIT = 7 * 24 * 12
 OFFSET_RANGE = 12 * 24
 
@@ -154,7 +78,7 @@ def get_pub_time(g, state, source):
         for node, dist in nodes.items():
             if dist == 1:
                 for foaf in g.neighbors(node):
-                    nodes[foaf] = 2
+                    if foaf not in nodes: nodes[foaf] = 2
                     if node in state.visited:
                         counter += find_overlap(state, node, foaf)
         if counter == 0: break
@@ -163,7 +87,7 @@ def get_pub_time(g, state, source):
         for node, dist in nodes.items():
             if dist == i:
                 for foaf in g.neighbors(node):
-                    nodes[foaf] = i + 1
+                    if foaf not in nodes: nodes[foaf] = i + 1
                     if node in state.visited:
                         find_overlap(state, node, foaf)
     return nodes
