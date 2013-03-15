@@ -6,7 +6,6 @@ import networkx as nx
 import socialModels as sm
 import scipy.stats as stats
 
-#=======================Timing Analysis=======================================
 LIMIT = 7 * 24 * 12
 OFFSET_RANGE = 12 * 24
 
@@ -16,6 +15,25 @@ class State():
         self.off_schedule = {}
         self.visited = {}
 
+def cap_edges(g, cap):
+    if cap == 0: return 0
+    total_rm = 0
+    for n in g.nodes():
+        edges = g.edges(n)
+        if len(edges) > cap:
+
+            no_to_rm = len(edges) - cap
+            total_rm += no_to_rm
+            random.shuffle(edges)
+
+            for edge in edges:
+                g.remove_edge(*edge)
+                no_to_rm -= 1
+                if no_to_rm == 0: break
+
+    return total_rm
+
+#=======================Timing Analysis=======================================
 def set_schedule(state, node, limit=LIMIT):
     on_times = []
     off_times = []
@@ -187,19 +205,20 @@ def gen_graph(gtype):
     return g
 
 def main():
-    msg = "help: ijsn13.py gtype hops visits on_mean off_mean tries " \
+    msg = "help: ijsn13.py gtype cap hops visits on_mean off_mean tries " \
           "ttl wtype walks"
-    if len(sys.argv) < 10: print msg; return -1
+    if len(sys.argv) < 11: print msg; return -1
 
     gtype = sys.argv[1]
-    hops = int(sys.argv[2])
-    visits = int(sys.argv[3])
-    on_mean = 12 * int(sys.argv[4])
-    off_mean = 12 * int(sys.argv[5])
-    tries = int(sys.argv[6])
-    ttl = int(sys.argv[7])
-    wtype = int(sys.argv[8])
-    walks = int(sys.argv[9])
+    cap = int(sys.argv[2])
+    hops = int(sys.argv[3])
+    visits = int(sys.argv[4])
+    on_mean = 12 * int(sys.argv[5])
+    off_mean = 12 * int(sys.argv[6])
+    tries = int(sys.argv[7])
+    ttl = int(sys.argv[8])
+    wtype = int(sys.argv[9])
+    walks = int(sys.argv[10])
 
     if len(gtype) == 1:
         g = gen_graph(gtype)

@@ -17,7 +17,6 @@ using namespace lemon;
 int graph_size;
 static boost::random::mt19937 rng_;
 
-/*==========================Timing Analysis=================================*/
 const int LIMIT = 7 * 24 * 12;
 const int OFFSET_RANGE = 12 * 24;
 
@@ -51,6 +50,31 @@ ListGraph::Node get_random_node(ListGraph& g) {
   return node;
 }
 
+int cap_edges(ListGraph& g, int cap) {
+  if (cap == 0) { return 0; }
+  int total_rm = 0;
+  for (ListGraph::NodeIt n(g); n != INVALID; ++n) {
+    std::vector<ListGraph::Edge> edges;
+    for (ListGraph::IncEdgeIt e(g, n); e != INVALID; ++e) {
+      edges.push_back(e);
+    }
+
+    if (edges.size() > cap) {
+      std::vector<ListGraph::Edge>::iterator it;
+      int no_to_rm = edges.size() - cap;
+      total_rm += no_to_rm;
+      random_shuffle(edges.begin(), edges.end());
+
+      for (it=edges.begin(); it != edges.end(); ++it) {
+        g.erase(*it);
+        if (--no_to_rm == 0) break;
+      }
+    }
+  }
+  return total_rm;
+}
+
+/*==========================Timing Analysis=================================*/
 int set_schedule(State& state, ListGraph::Node node, int limit) {
   ListPtr on_times(new std::vector<IntervalPtr>);
   ListPtr off_times(new std::vector<IntervalPtr>);
@@ -343,10 +367,10 @@ int main (int argc, char* argv[]) {
   ListGraph::NodeMap<int> degree(g);
   DegreeMap degree_map(degree);
 
-  char msg[] = "help: ijsn13 gfile hops visits on_mean off_mean tries "
+  char msg[] = "help: ijsn13 gfile cap hops visits on_mean off_mean tries "
                "ttl wtype walks";
 
-  if (argc < 10) {
+  if (argc < 11) {
     std::cout << msg << std::endl;
     return -1;
   }
@@ -358,14 +382,15 @@ int main (int argc, char* argv[]) {
     return -1;
   }
 
-  int hops = atoi(argv[2]);
-  int visits = atoi(argv[3]);
-  int on_mean = atoi(argv[4]);
-  int off_mean = atoi(argv[5]);
-  int tries = atoi(argv[6]);
-  int ttl = atoi(argv[7]);
-  int wtype = atoi(argv[8]);
-  int walks = atoi(argv[9]);
+  int cap = atoi(argv[2]);
+  int hops = atoi(argv[3]);
+  int visits = atoi(argv[4]);
+  int on_mean = atoi(argv[5]);
+  int off_mean = atoi(argv[6]);
+  int tries = atoi(argv[7]);
+  int ttl = atoi(argv[8]);
+  int wtype = atoi(argv[9]);
+  int walks = atoi(argv[10]);
 
   degree_map.init(g);
   bandwidth_cost(g, degree, hops, visits);
