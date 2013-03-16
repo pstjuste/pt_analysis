@@ -177,33 +177,6 @@ def random_walk(g, ttl, wtype, walks):
                 break
         print result
 
-#=======================Helper Functions======================================
-def save_graph(g, filename):
-    nx.write_edgelist(g, filename, data=False)
-
-def gen_graph(gtype):
-    if gtype == "a":
-        g = nx.barabasi_albert_graph(97134, 3)
-    elif gtype == "b":
-        g = nx.barabasi_albert_graph(905668, 12)
-    elif gtype == "c":
-        g = sm.randomWalk_mod(97134, 0.90, 0.23)
-    elif gtype == "d":
-        g = sm.randomWalk_mod(905668, 0.93, 0.98)
-    elif gtype == "e":
-        g = sm.nearestNeighbor_mod(97134, 0.53, 1)
-    elif gtype == "f":
-        g = sm.nearestNeighbor_mod(905668, 0.90, 5)
-    elif gtype == "g":
-        g = nx.random_regular_graph(6, 97134)
-    elif gtype == "h":
-        g = nx.random_regular_graph(20, 905668)
-    elif gtype == "i":
-        g = nx.random_regular_graph(100, 5000)
-    else:
-        g = nx.complete_graph(10)
-    return g
-
 def main():
     msg = "help: ijsn13.py gtype cap hops visits on_mean off_mean tries " \
           "ttl wtype walks"
@@ -220,11 +193,7 @@ def main():
     wtype = int(sys.argv[9])
     walks = int(sys.argv[10])
 
-    if len(gtype) == 1:
-        g = gen_graph(gtype)
-    else:
-        g = nx.read_edgelist(gtype, nodetype=int, create_using=nx.Graph())
-
+    g = nx.read_edgelist(gtype, nodetype=int, create_using=nx.Graph())
     bandwidth_cost(g, hops, visits)
     publish_time(g, on_mean, off_mean, tries)
     random_walk(g, ttl, wtype, walks)
