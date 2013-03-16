@@ -149,7 +149,7 @@ int set_message_time(State& state, ListGraph::Node node) {
   ListPtr list = state.on_schedule[node];
   IntervalPtr interval = (*list.get())[0];
   int range = interval->end_time - interval->start_time;
-  boost::random::uniform_int_distribution<> dist(1, range);
+  boost::random::uniform_int_distribution<> dist(0, range);
   state.visited[node] = dist(rng_) + interval->start_time;
   return 0;
 }
@@ -385,8 +385,8 @@ int main (int argc, char* argv[]) {
   int cap = atoi(argv[2]);
   int hops = atoi(argv[3]);
   int visits = atoi(argv[4]);
-  int on_mean = atoi(argv[5]);
-  int off_mean = atoi(argv[6]);
+  int on_mean = 12 * atoi(argv[5]);
+  int off_mean = 12 * atoi(argv[6]);
   int tries = atoi(argv[7]);
   int ttl = atoi(argv[8]);
   int wtype = atoi(argv[9]);
