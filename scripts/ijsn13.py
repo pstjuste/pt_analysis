@@ -3,7 +3,6 @@
 import sys
 import random
 import networkx as nx
-import socialModels as sm
 import scipy.stats as stats
 
 LIMIT = 7 * 24 * 12
