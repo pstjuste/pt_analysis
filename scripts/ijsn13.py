@@ -193,6 +193,7 @@ def main():
     walks = int(sys.argv[10])
 
     g = nx.read_edgelist(gtype, nodetype=int, create_using=nx.Graph())
+    cap_edges(g, cap)
     bandwidth_cost(g, hops, visits)
     publish_time(g, on_mean, off_mean, tries)
     random_walk(g, ttl, wtype, walks)

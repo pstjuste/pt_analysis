@@ -392,6 +392,7 @@ int main (int argc, char* argv[]) {
   int wtype = atoi(argv[9]);
   int walks = atoi(argv[10]);
 
+  cap_edges(g, cap);
   degree_map.init(g);
   bandwidth_cost(g, degree, hops, visits);
   publish_time(g, degree, on_mean, off_mean, tries);
