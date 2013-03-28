@@ -163,27 +163,7 @@ int get_pub_time(ListGraph& g, State& state, ListGraph::Node source) {
     find_overlap(state, source, node, LIMIT);
   }
 
-  while (true) {
-    int counter = 0;
-    std::map<ListGraph::Node,int>::iterator it;
-    for (it = state.nodes.begin(); it != state.nodes.end(); it++) {
-      ListGraph::Node node = it->first;
-      if (it->second == 1) {
-        for (ListGraph::IncEdgeIt e(g, node); e != INVALID; ++e) {
-          ListGraph::Node foaf = g.oppositeNode(node, e);
-          if (state.nodes.find(foaf) == state.nodes.end()) {
-            state.nodes[foaf] = 2;
-          }
-          if (state.visited.find(node) != state.visited.end()) {
-            counter += find_overlap(state, node, foaf, LIMIT);
-          }
-        }
-      }
-    }
-    if (counter == 0) { break; }
-  }
-
-  for (int i = 2; i < 4; i++) {
+  for (int i = 1; i < 4; i++) {
     std::map<ListGraph::Node,int>::iterator it;
     for (it = state.nodes.begin(); it != state.nodes.end(); it++) {
       ListGraph::Node node = it->first;

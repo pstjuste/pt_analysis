@@ -90,17 +90,7 @@ def get_pub_time(g, state, source):
         nodes[node] = 1
         find_overlap(state, source, node)
 
-    while True:
-        counter = 0
-        for node, dist in nodes.items():
-            if dist == 1:
-                for foaf in g.neighbors(node):
-                    if foaf not in nodes: nodes[foaf] = 2
-                    if node in state.visited:
-                        counter += find_overlap(state, node, foaf)
-        if counter == 0: break
-
-    for i in range(2,4):
+    for i in range(1,4):
         for node, dist in nodes.items():
             if dist == i:
                 for foaf in g.neighbors(node):
